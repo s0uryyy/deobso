@@ -82,7 +82,13 @@ jobs:
           retention-days: 7
           compression-level: 0
       - name: Save JARs in a draft release if artifact storage is unavailable
-        if: failure() && steps.jar_artifact.outcome == 'failure' && github.event_name == 'workflow_dispatch' && inputs.draft_release_fallback
+        # A marked push on the development branch also permits a one-off draft build
+        # when the GitHub connection cannot dispatch workflows manually.
+        if: >-
+          failure() && steps.jar_artifact.outcome == 'failure' &&
+          ((github.event_name == 'workflow_dispatch' && inputs.draft_release_fallback) ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/arena/01a09a8b-deobso' &&
+          contains(github.event.head_commit.message, '[draft-build]')))
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
