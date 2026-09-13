@@ -1,18 +1,19 @@
-name: Build every supported Minecraft and loader combination
+name: Build all Minecraft versions with downloadable JARs
 on:
   workflow_dispatch:
-    inputs:
-      upload_jars:
-        description: 'Upload built JARs (requires available artifact storage)'
-        type: boolean
-        default: false
+  push:
 permissions:
   contents: read
 jobs:
-  matrix:
+  prepare:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[matrix-build]')
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     outputs:
       targets: ${{ steps.targets.outputs.matrix }}
+      release_tag: ${{ steps.release.outputs.tag }}
+      release_url: ${{ steps.release.outputs.url }}
     steps:
       - uses: actions/checkout@v4
       - id: targets
@@ -23,50 +24,66 @@ jobs:
           versions = json.loads(Path('stonecutter.properties.json').read_text())
           ignored = set(Path('dev/versions/ignored.txt').read_text().splitlines())
           targets = [f'{version}-{loader}' for version, loaders in versions.items()
-                     for loader in loaders if f'{version}-{loader}' not in ignored]
+                     for loader in loaders if f'{version}-{loader}' not in ignored
+                     and f'{version}-{loader}' != '1.21.11-fabric']
+          targets.sort(key=lambda target: (not target.endswith('-fabric'), target))
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write('matrix=' + json.dumps({'target': targets}) + '\n')
           PY
+      - id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="deobso-matrix-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          url=$(gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease \
+            --title "deobso — multi-version test builds ${GITHUB_SHA:0:7}" \
+            --notes "Builds from $GITHUB_SHA. Minecraft 1.21.11 Fabric is built first, followed by the remaining supported targets. Assets are added as jobs finish; missing JARs mean a target has not succeeded. Each target has a checksum file and build log. These are untested in-game development builds, not a stable release. Build status: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID")
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Downloadable files (repository owner access): $url" >> "$GITHUB_STEP_SUMMARY"
+  priority-fabric:
+    name: Fabric 1.21.11 (priority)
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-target
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          target: 1.21.11-fabric
+          release_tag: ${{ needs.prepare.outputs.release_tag }}
   build:
-    needs: matrix
+    needs: [prepare, priority-fabric]
     strategy:
       fail-fast: false
       max-parallel: 4
-      matrix: ${{ fromJson(needs.matrix.outputs.targets) }}
+      matrix: ${{ fromJson(needs.prepare.outputs.targets) }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew -Dru.vidtu.ias.only=${{ matrix.target }} assemble --no-daemon
-      - name: Upload built JARs
-        uses: actions/upload-artifact@v4
-        if: inputs.upload_jars
-        with:
-          name: deobso-${{ matrix.target }}
-          path: build/libs/
-          if-no-files-found: error
-          retention-days: 3
-          compression-level: 9
-      - name: Explain artifact mode
-        if: always()
+      - uses: ./.github/actions/build-target
         env:
-          UPLOAD_JARS: ${{ inputs.upload_jars }}
+          GH_TOKEN: ${{ github.token }}
+        with:
+          target: ${{ matrix.target }}
+          release_tag: ${{ needs.prepare.outputs.release_tag }}
+  summary:
+    if: always() && needs.prepare.result == 'success'
+    needs: [prepare, priority-fabric, build]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          PRIORITY: ${{ needs.priority-fabric.result }}
+          MATRIX: ${{ needs.build.result }}
+          RELEASE: ${{ needs.prepare.outputs.release_url }}
         run: |
-          if [ "$UPLOAD_JARS" = "true" ]; then
-            echo 'JAR upload requested. Check the upload step for availability; compilation and upload are separate steps.' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'Build verification only: JAR upload is disabled. No downloadable JAR is retained. Re-run with upload_jars enabled once artifact storage is available.' >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "Fabric 1.21.11: **$PRIORITY**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Other targets: **$MATRIX**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Downloads: $RELEASE" >> "$GITHUB_STEP_SUMMARY"

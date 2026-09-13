@@ -43,7 +43,7 @@ jobs:
     permissions:
       contents: write
     # Avoid building twice for the push and pull_request events of the same commit.
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, '[matrix-build]')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
