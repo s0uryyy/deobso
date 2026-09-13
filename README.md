@@ -92,10 +92,9 @@ Microsoft-вход в моде блокируется: для него нужн�
 ```
 
 Артефакты сборки собираются в `build/libs/` средствами upstream.
-Шаблоны GitHub Actions сохранены в `docs/workflow-templates/`: `build.yml`
-для core-тестов на push/PR и `matrix.yml` для ручной сборки всех комбинаций.
-Они **не активны**: GitHub-соединение не имеет разрешения на запись в
-`.github/workflows`. Владелец репозитория может скопировать шаблоны туда позднее.
-Эти workflow ещё не запускались в рамках этой работы. [План игровых проверок](docs/TESTING.md).
+GitHub Actions активированы в `.github/workflows/`: `build.yml` запускает
+core-тесты на push/PR, а `matrix.yml` позволяет вручную собрать все комбинации.
+Наличие workflow не означает успешной сборки: результаты проверяй во вкладке
+Actions и в проверках PR. [План игровых проверок](docs/TESTING.md).
 
 Оригинальная документация сохранена в [UPSTREAM_README.md](docs/UPSTREAM_README.md).
