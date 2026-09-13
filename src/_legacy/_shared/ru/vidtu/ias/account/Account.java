@@ -148,6 +148,7 @@ public sealed interface Account permits OfflineAccount, MicrosoftAccount, ElyAcc
         // Read and return the account by type.
         return switch (type) {
             case "ias:offline_v1" -> OfflineAccount.readV1(in);
+            case "deobso:ely_oauth_v1" -> ElyAccount.readOAuth(in);
             case "deobso:ely_v1" -> ElyAccount.read(in);
             case "deobso:offline_v3" -> OfflineAccount.readV3(in);
             case "ias:offline_v2" -> OfflineAccount.readV2(in);

@@ -21,6 +21,8 @@ final class FolderImportScreen extends Screen {
     private int page;
     private PopupBox folderPath;
     private boolean closed;
+    private boolean readOnInit;
+    private boolean nativeUnavailable;
     private int rows;
     private boolean busy;
     private String status = "Choose folder; source is read-only";
@@ -28,6 +30,25 @@ final class FolderImportScreen extends Screen {
     FolderImportScreen(Screen parent) {
         super(Component.literal("Add accounts from folder"));
         this.parent = parent;
+    }
+
+    /** Runs from the account-menu click on Minecraft's UI thread (native modal dialog). */
+    static void open(Screen parent) {
+        var minecraft = net.minecraft.client.Minecraft.getInstance();
+        FolderImportScreen screen = new FolderImportScreen(parent);
+        try {
+            String selected = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_selectFolderDialog(
+                    "Add accounts from folder", minecraft.gameDirectory.getAbsolutePath());
+            if (selected == null) return; // Cancel: keep the original menu and its selection.
+            screen.folder = Path.of(selected).toAbsolutePath().normalize();
+            screen.readOnInit = true;
+        } catch (RuntimeException | LinkageError ex) {
+            // Desktop-less Linux or a missing native library: retain the manual path picker.
+            screen.nativeUnavailable = true;
+            screen.status = "System folder picker unavailable; enter a path below";
+        }
+        //$ set_screen 'minecraft' 'screen'
+        minecraft.gui.setScreen(screen);
     }
 
     private void button(int x, int y, int width, String text, Runnable action, boolean enabled) {
@@ -84,7 +105,10 @@ final class FolderImportScreen extends Screen {
             if (accounts != null && !busy) { accounts = null; selected.clear(); page = 0; browse(folder); }
             else onClose();
         }, true);
-        if (first) browse(folder);
+        if (readOnInit) {
+            readOnInit = false;
+            read();
+        } else if (first) browse(folder);
     }
 
     private void openPath() {
@@ -107,7 +131,7 @@ final class FolderImportScreen extends Screen {
         }, IAS.executor()).whenCompleteAsync((result, error) -> {
             busy = false;
             if (closed) return;
-            if (error == null) { folder = path; directories = result; page = 0; status = "Choose folder; source is read-only"; }
+            if (error == null) { folder = path; directories = result; page = 0; status = nativeUnavailable ? "System picker unavailable; enter a path below" : "Choose folder; source is read-only"; }
             else status = "Cannot read folder (permissions or missing directory)";
             init();
         }, this.minecraft);

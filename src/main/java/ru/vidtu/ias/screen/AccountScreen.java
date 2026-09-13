@@ -207,8 +207,7 @@ public final class AccountScreen extends Screen {
 
         this.addRenderableWidget(new PopupButton(this.width / 2 - 154, this.height - 72, 308, 20,
                 Component.literal("Add accounts from folder"), btn -> {
-            //$ set_screen 'this.minecraft' 'new FolderImportScreen(this)'
-            this.minecraft.gui.setScreen(new FolderImportScreen(this));
+            FolderImportScreen.open(this);
         }, java.util.function.Supplier::get));
 
         // Add account list.

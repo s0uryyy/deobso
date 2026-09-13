@@ -185,7 +185,7 @@ public final class AccountScreen extends Screen implements LastPassRenderCallbac
 
         this.addRenderableWidget(new PopupButton(this.width / 2 - 154, this.height - 72, 308, 20,
                 new net.minecraft.network.chat.TextComponent("Add accounts from folder"), btn -> {
-            this.minecraft.setScreen(new FolderImportScreen(this));
+            FolderImportScreen.open(this);
         }, ru.vidtu.ias.legacy.LegacyTooltip.EMPTY));
 
         // Add account list.

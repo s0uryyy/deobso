@@ -122,4 +122,17 @@ class AccountTests {
         assertFalse(raw.contains(session.accessToken()));
         assertFalse(raw.contains(session.clientToken()));
     }
+    @Test void oauthAccountRoundTripKeepsNewTypeAndEncryptsRefreshToken() throws IOException {
+        var session = new ru.vidtu.ias.auth.ely.ElyOAuth.Session("Steve", UUID.randomUUID(), "oauth-access", "oauth-refresh");
+        ElyAccount account = ElyAccount.create(session);
+        Account restored = roundTrip(account);
+        assertEquals("deobso:ely_oauth_v1", restored.type());
+        assertEquals(account.uuid(), restored.uuid());
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        account.write(new DataOutputStream(bytes));
+        String raw = bytes.toString(java.nio.charset.StandardCharsets.ISO_8859_1);
+        assertFalse(raw.contains(session.accessToken()));
+        assertFalse(raw.contains(session.refreshToken()));
+    }
+
 }
