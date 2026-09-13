@@ -1,0 +1,27 @@
+In-Game Account Switcher is a third-party mod for Minecraft Java Edition that
+allows you to change your logged in account in-game, without restarting it.
+
+Copyright (C) 2015-2022 The_Fireplace
+Copyright (C) 2021-2026 VidTu
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>
+
+Modified for deobso account changer, 2026.
+Fork: https://github.com/s0uryyy/deobso
+Upstream snapshot: 8cdd44342c9832b26a3bd6292222cfdf2d1dbfea
+Changes: folder import UI, custom offline UUID storage, Ely.by authentication
+and authlib-injector integration, branding, tests and build workflows.
+
+Storage isolation: automatically copy the original IAS account directory once
+into a separate deobso working directory; never write to the original directory.

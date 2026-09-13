@@ -1,0 +1,53 @@
+name: Build every supported Minecraft and loader combination
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: targets
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          versions = json.loads(Path('stonecutter.properties.json').read_text())
+          ignored = set(Path('dev/versions/ignored.txt').read_text().splitlines())
+          targets = [f'{version}-{loader}' for version, loaders in versions.items()
+                     for loader in loaders if f'{version}-{loader}' not in ignored]
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('matrix=' + json.dumps({'target': targets}) + '\n')
+          PY
+  build:
+    needs: matrix
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJson(needs.matrix.outputs.targets) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew -Dru.vidtu.ias.only=${{ matrix.target }} assemble --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deobso-${{ matrix.target }}
+          path: build/libs/
+          if-no-files-found: error
