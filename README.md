@@ -7,10 +7,14 @@
 > **Статус: сборка для проверки, не проверенный игровой релиз.**
 > [GitHub Actions: 1.21.1 / Fabric и core-тесты прошли](https://github.com/s0uryyy/deobso/actions/runs/34761559615)
 > на commit `84181a7`. Локальная загрузка Gradle по-прежнему блокируется TLS.
-> **Fabric 1.21.11 также собран и доступен для скачивания:**
-> [JAR и контрольные суммы в черновике Releases](https://github.com/s0uryyy/deobso/releases/tag/untagged-47a4725d6a37d1433717).
-> [Полная матрица сборок](https://github.com/s0uryyy/deobso/actions/runs/34767352142)
-> добавляет готовые файлы туда же. Черновик доступен владельцу репозитория.
+> **Новая сборка Fabric 1.21.11 с браузерным OAuth и системным выбором папки:**
+> [JAR и контрольные суммы](https://github.com/s0uryyy/deobso/releases/tag/untagged-d36630904a8b50ca2c76).
+> Компиляция и core/OAuth-тесты commit `83e10c1` прошли в
+> [GitHub Actions](https://github.com/s0uryyy/deobso/actions/runs/34768049183).
+> Общий статус job красный только из-за квоты Actions Artifacts: сохранение JAR
+> в черновик Releases успешно. Черновик доступен владельцу репозитория.
+> [Матрица предыдущего snapshot](https://github.com/s0uryyy/deobso/actions/runs/34767352142)
+> собирает старый код без этих двух изменений.
 > Запуск в игре не проверен; наличие версии в матрице не гарантирует успешной сборки.
 
 ## Возможности

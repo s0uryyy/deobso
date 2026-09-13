@@ -115,3 +115,14 @@ https://github.com/s0uryyy/deobso/actions/runs/34767352142 (commit `3ff5b7b`).
   графического окружения. Нативный диалог модальный и вызывается на UI-потоке.
 - OAuth-тесты не используют реальные Ely.by credentials и не обращаются к сети
   Ely.by: кодовый обмен в callback-тестах заменён тестовым обработчиком.
+
+
+Проверка commit `83e10c1`: в запуске
+https://github.com/s0uryyy/deobso/actions/runs/34768049183 прошли core/OAuth unit
+тесты и компиляция Fabric 1.21.11, включая обращения к LWJGL Tiny File Dialogs.
+Новый JAR загружен в черновик:
+https://github.com/s0uryyy/deobso/releases/tag/untagged-d36630904a8b50ca2c76.
+Красный статус job связан с квотой Actions Artifacts, а не с компиляцией;
+резервное сохранение JAR в Release успешно. Browser/desktop smoke tests и вход
+с реальным Ely.by-аккаунтом не выполнялись. Прочие версии с новыми UI ещё не
+пересобирались; предыдущая полная матрица относится к commit `3ff5b7b`.
