@@ -53,5 +53,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Build Minecraft 1.21.1 Fabric
         run: ./gradlew -Dru.vidtu.ias.only=1.21.1-fabric :1.21.1-fabric:assemble --no-daemon
-      - name: List built JARs (no artifact upload)
-        run: find build/libs -maxdepth 1 -name '*.jar' -type f -print
+      - name: Check built JARs and generate checksums
+        shell: bash
+        run: |
+          shopt -s nullglob
+          jars=(build/libs/*1.21.1-fabric*.jar)
+          if [ "${#jars[@]}" -eq 0 ]; then
+            echo "No Minecraft 1.21.1 Fabric JARs were produced" >&2
+            exit 1
+          fi
+          (cd build/libs && sha256sum *1.21.1-fabric*.jar > SHA256SUMS.txt)
+          printf '%s\n' "${jars[@]}"
+      - name: Upload Minecraft 1.21.1 Fabric JARs
+        uses: actions/upload-artifact@v4
+        with:
+          name: deobso-1.21.1-fabric
+          path: |
+            build/libs/*1.21.1-fabric*.jar
+            build/libs/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
