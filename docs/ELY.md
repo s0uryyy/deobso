@@ -1,70 +1,80 @@
-# Ely.by: браузерный вход
+# Ely.by: браузерный вход (Device Authorization)
 
-## Добавление аккаунта
+## Использование
 
-1. Открой меню аккаунтов → Add → Ely.by.
-2. Мод автоматически откроет браузер на `account.ely.by` для приложения **deobso**.
-3. Войди на сайте Ely.by, пройди 2FA там же и подтверди запрошенные разрешения.
-4. Браузер вернёт тебя на локальную страницу подтверждения. Вернись в Minecraft:
-   после обмена кода и получения профиля аккаунт появится в списке.
+1. В меню аккаунтов выбери Add → Ely.by.
+2. Откроется окно в том же оформлении, что Microsoft-авторизация: затемнённый фон,
+   центральная рамка, заголовок, статус и Back. Мод получает одноразовый код.
+3. Браузер автоматически откроет **https://account.ely.by/code?user_code=…**.
+4. Войди на сайте, пройди 2FA и подтверди разрешения для приложения **deobso**.
+5. Вернись в игру: мод дождётся подтверждения и добавит аккаунт.
 
-В моде больше нет полей пароля и кода 2FA. Кнопка Open browser повторно открывает
-текущий запрос, Try again создаёт новый. Cancel закрывает локальный обработчик;
-после отмены аккаунт не добавляется. Ожидание ответа браузера ограничено 5 минутами.
-Если вместо сайта открывается ошибка приложения, проверь, что Client ID **deobso**
-зарегистрирован как публичное **desktop-приложение**, а не сайт.
+Если браузер не открылся, используй «Открыть браузер» или «Копировать код» и
+вручную открой https://account.ely.by/code. Никому не передавай этот код.
+«Назад» отменяет ожидание; «Повторить» создаёт новый запрос после ошибки.
+Пароль и 2FA никогда не вводятся в моде.
 
-## Протокол и безопасность
+## Почему заменён прежний PKCE-вход
 
-- Authorization Code + **PKCE S256**. Client ID: `deobso`. Client secret не нужен.
-- Разрешения: `account_info minecraft_server_session offline_access`. Доступ к
-  e-mail не запрашивается.
-- Callback: `http://127.0.0.1:<случайный порт>/deobso/ely/callback`. Обработчик
-  слушает только loopback на компьютере игрока, не доступен из локальной сети.
-  Desktop-клиенты Ely.by допускают произвольный локальный порт и путь.
-- Для каждого входа генерируются новые криптографически случайные state и
-  code_verifier. Код принимается однократно, только при совпадении state, host,
-  метода и пути. Дублирующиеся/некорректные параметры отклоняются.
-- Callback не отражает code, state или токены в ответе браузеру, использует
-  `Cache-Control: no-store` и `Referrer-Policy: no-referrer`.
-- Обмен кода и обновление OAuth-токена выполняются только по HTTPS на
-  `https://account.ely.by/api/oauth2/v1/token`; профиль запрашивается на
-  `https://account.ely.by/api/account/v1/info`. Redirects этих API не разрешены.
-- Access и refresh tokens шифруются HardwareCrypt v2 и сохраняются в отдельной
-  папке deobso. Пароль не проходит через мод. После переноса на другой компьютер
-  может понадобиться заново добавить аккаунт.
-- Новые аккаунты имеют тип `deobso:ely_oauth_v1`. Старые `deobso:ely_v1` по-прежнему
-  читаются и обновляются прежним Yggdrasil-протоколом. OAuth refresh token и
-  Yggdrasil client token никогда не подменяют друг друга.
+В просмотренной реализации сайта Ely.by `InitOAuthAuthCodeFlowState` извлекает
+`code_challenge` / `code_challenge_method`, но `getOAuthRequest` не включает их в
+запрос `/validate`. Публичный клиент требует PKCE, а обработчик ошибок сайта может
+показывать `Invalid request (null required)` вместо имени недостающего параметра.
 
-## Игровые сессии и скины — отдельная настройка
+Текущий пользовательский вход использует поддерживаемый Ely.by **OAuth 2.0 Device
+Authorization Grant (RFC 8628)**, как устройство-код в Microsoft. Это другой
+стандартный grant для публичных клиентов: секрет приложения не встраивается,
+а требование PKCE для Authorization Code не отключается. Браузер передаёт только
+user_code; приватный device_code остаётся в моде. Локальный HTTP-callback больше
+не используется. Старые классы PKCE/callback оставлены для совместимости тестов,
+но экран авторизации их не запускает.
 
-Браузерный OAuth-вход **не заменяет authlib-injector**. Добавить аккаунт можно и
-без agent, но для игрового входа Ely.by и скинов требуется запуск с ним:
+## Протокол
 
-1. Скачай совместимый authlib-injector из официального репозитория:
-   https://github.com/yushijinhun/authlib-injector/releases/latest
-2. Добавь в JVM arguments отдельного профиля лаунчера:
-   ```text
-   -javaagent:/путь/к/authlib-injector.jar=ely.by
-   ```
-3. Перезапусти игру. Injector не кладётся в `mods`; путь с пробелами необходимо
-   заключить в кавычки по правилам лаунчера.
+- Публичный Client ID: `deobso`.
+- Scopes: `account_info minecraft_server_session offline_access`; e-mail не запрашивается.
+- Инициализация: POST `https://account.ely.by/api/oauth2/v1/devicecode`.
+- Опрос: POST `https://account.ely.by/api/oauth2/v1/token`,
+  grant_type `urn:ietf:params:oauth:grant-type:device_code`.
+- `authorization_pending` продолжает ожидание. `slow_down` увеличивает интервал
+  на 5 секунд. При транспортных ошибках опрос замедляется; срок действия кода
+  ограничивает общее ожидание. `access_denied`, `expired_token`, `invalid_client`
+  и другие терминальные ошибки прекращают вход.
+- Ely.by фактически возвращает `http://account.ely.by/code` в verification_uri.
+  Мод принимает только ожидаемые host/path/порты, отклоняет userinfo, query,
+  fragment и посторонние адреса и **всегда открывает HTTPS**, не HTTP.
+- Access/refresh tokens хранятся в HardwareCrypt v2 как `deobso:ely_oauth_v1`.
+  Старые OAuth-аккаунты и Yggdrasil-аккаунты `deobso:ely_v1` продолжают читаться.
+  На другом компьютере аппаратное расшифрование может потребовать повторного входа.
+- Ни коды, ни токены не включаются в toString, ошибки UI или логи сборки.
 
-Injector перенаправляет authlib глобально: Microsoft-вход в таком запуске
-заблокирован. Для Microsoft нужен профиль без agent. Сервер должен поддерживать
-Ely.by; это не способ обхода проверки Microsoft-лицензии на обычных серверах.
+## Игровые сессии и скины
+
+**Authlib-injector по-прежнему требуется для игрового входа и скинов Ely.by.**
+Сам браузерный вход и сохранение аккаунта доступны без него.
+
+Скачай совместимую версию: https://github.com/yushijinhun/authlib-injector/releases/latest
+
+В JVM arguments отдельного профиля лаунчера добавь:
+
+```text
+-javaagent:/путь/к/authlib-injector.jar=ely.by
+```
+
+Перезапусти игру. Injector не кладётся в `mods`. Он меняет authlib глобально:
+Microsoft-вход в таком запуске заблокирован, для него нужен профиль без agent.
+Сервер должен поддерживать Ely.by; это не обход лицензии обычных Mojang-серверов.
 
 ## Проверка
 
-Unit-тесты покрывают S256 по RFC 7636, callback на реальном loopback HTTP-сервере,
-неверный state, повторяющиеся параметры, отказ, отмену, тайм-аут, разбор профиля,
-сериализацию OAuth-аккаунтов без открытых токенов. Реальный вход с пользовательским
-аккаунтом и открытие браузера/нативного диалога требуют проверки в игре.
+`ElyDeviceTests` проверяет pending, slow_down, отказ, истечение срока, отмену,
+редактирование/проверку адреса браузера и отсутствие секретов в диагностике.
+`dev/check_ely_device.py` делает публичную проверку сервиса: выдача device/user
+codes и `/validate` без входа в пользовательский аккаунт. Коды не печатаются,
+доступ к аккаунту не предоставляется. Реальный вход с 2FA и UI нужно проверить
+на компьютере игрока.
 
-Документация API: https://docs.ely.by/en/oauth.html
-
-Поддержка redirect URI desktop-приложений в исходниках Ely.by:
-https://github.com/elyby/accounts/blob/master/common/components/OAuth2/Grants/ValidateRedirectUriTrait.php
-
-Документация agent: https://docs.ely.by/en/authlib-injector.html
+Исходники протокола сервиса:
+- https://github.com/elyby/accounts/blob/master/api/tests/functional/oauth/DeviceCodeCest.php
+- https://github.com/elyby/accounts-frontend/blob/master/packages/app/components/auth/actions.ts
+- https://github.com/elyby/accounts-frontend/blob/master/packages/app/services/authFlow/InitOAuthAuthCodeFlowState.ts
