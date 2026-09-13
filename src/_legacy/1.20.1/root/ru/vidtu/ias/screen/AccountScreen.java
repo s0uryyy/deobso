@@ -179,10 +179,8 @@ public final class AccountScreen extends Screen {
                 .bounds(this.width / 2 + 50 + 4, this.height - 24, 100, 20)
                 .build());
 
-        this.addRenderableWidget(new PopupButton(this.width / 2 - 154, this.height - 72, 308, 20,
-                Component.literal("Add accounts from folder"), btn -> {
-            FolderImportScreen.open(this);
-        }, java.util.function.Supplier::get));
+        this.addRenderableWidget(Button.builder(Component.literal("Add accounts from folder"), btn -> FolderImportScreen.open(this))
+                .bounds(this.width / 2 - 154, this.height - 72, 308, 20).build());
 
         // Add account list.
         if (this.list != null) {

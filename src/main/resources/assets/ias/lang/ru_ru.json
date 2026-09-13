@@ -132,5 +132,15 @@
   "modmenu.descriptionTranslation.ias": "Позволяет менять используемый аккаунт в игре без перезапуска Minecraft.",
   "modmenu.summaryTranslation.ias": "Позволяет менять аккаунт в игре.",
   "deobso.account.ely": "Ely.by",
-  "deobso.ely.refresh": "Обновление сессии Ely.by…"
+  "deobso.ely.refresh": "Обновление сессии Ely.by…",
+  "deobso.folder.title": "Добавить аккаунты из папки",
+  "deobso.folder.open": "Открыть",
+  "deobso.ely.title": "Вход Ely.by",
+  "deobso.ely.initializing": "Подготовка авторизации Ely.by...",
+  "deobso.ely.waiting": "Завершите вход в браузере.\nВаш код: %s",
+  "deobso.ely.browser": "Открыть браузер",
+  "deobso.ely.retry": "Повторить",
+  "deobso.ely.copy": "Копировать код",
+  "deobso.ely.failed": "Ошибка авторизации Ely.by: %s\nПопробуйте ещё раз.",
+  "deobso.ely.browserFailed": "Не удалось открыть браузер. Откройте account.ely.by/code и введите код."
 }

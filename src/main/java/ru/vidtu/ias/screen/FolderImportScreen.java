@@ -21,7 +21,8 @@ final class FolderImportScreen extends Screen {
     private int page;
     private PopupBox folderPath;
     private boolean closed;
-    private boolean readOnInit;
+    private boolean chooseOnInit;
+    private java.util.concurrent.CompletableFuture<Path> chooser;
     private boolean nativeUnavailable;
     private int rows;
     private boolean busy;
@@ -32,23 +33,42 @@ final class FolderImportScreen extends Screen {
         this.parent = parent;
     }
 
-    /** Runs from the account-menu click on Minecraft's UI thread (native modal dialog). */
     static void open(Screen parent) {
         var minecraft = net.minecraft.client.Minecraft.getInstance();
         FolderImportScreen screen = new FolderImportScreen(parent);
-        try {
-            String selected = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_selectFolderDialog(
-                    "Add accounts from folder", minecraft.gameDirectory.getAbsolutePath());
-            if (selected == null) return; // Cancel: keep the original menu and its selection.
-            screen.folder = Path.of(selected).toAbsolutePath().normalize();
-            screen.readOnInit = true;
-        } catch (RuntimeException | LinkageError ex) {
-            // Desktop-less Linux or a missing native library: retain the manual path picker.
-            screen.nativeUnavailable = true;
-            screen.status = "System folder picker unavailable; enter a path below";
-        }
+        screen.chooseOnInit = true;
         //$ set_screen 'minecraft' 'screen'
         minecraft.gui.setScreen(screen);
+    }
+
+    private void chooseDesktop() {
+        busy = true;
+        status = "Choose a folder in the Open dialog...";
+        init();
+        try {
+            chooser = ru.vidtu.ias.config.DesktopFolderPicker.open(folder,
+                    net.minecraft.client.resources.language.I18n.get("deobso.folder.title"),
+                    net.minecraft.client.resources.language.I18n.get("deobso.folder.open"));
+            chooser.whenCompleteAsync((selected, error) -> {
+                if (closed) return;
+                busy = false;
+                if (error != null) {
+                    nativeUnavailable = true;
+                    status = "File dialog unavailable; enter a path below";
+                    init();
+                } else if (selected == null) {
+                    onClose();
+                } else {
+                    folder = selected;
+                    read();
+                }
+            }, this.minecraft);
+        } catch (RuntimeException | LinkageError ex) {
+            busy = false;
+            nativeUnavailable = true;
+            status = "File dialog unavailable; enter a path below";
+            init();
+        }
     }
 
     private void button(int x, int y, int width, String text, Runnable action, boolean enabled) {
@@ -105,9 +125,9 @@ final class FolderImportScreen extends Screen {
             if (accounts != null && !busy) { accounts = null; selected.clear(); page = 0; browse(folder); }
             else onClose();
         }, true);
-        if (readOnInit) {
-            readOnInit = false;
-            read();
+        if (chooseOnInit) {
+            chooseOnInit = false;
+            chooseDesktop();
         } else if (first) browse(folder);
     }
 
@@ -163,8 +183,16 @@ final class FolderImportScreen extends Screen {
     }
 
     @Override
+    public void removed() {
+        closed = true;
+        if (chooser != null) chooser.cancel(false);
+        super.removed();
+    }
+
+    @Override
     public void onClose() {
         closed = true;
+        if (chooser != null) chooser.cancel(false);
         //$ set_screen 'this.minecraft' 'this.parent'
             this.minecraft.gui.setScreen(this.parent);
     }

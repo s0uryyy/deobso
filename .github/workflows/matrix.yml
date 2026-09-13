@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   prepare:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[matrix-build]')
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[matrix-build]') || contains(github.event.head_commit.message, '[requested-build]')
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -17,6 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: targets
+        env:
+          REQUESTED: ${{ contains(github.event.head_commit.message, '[requested-build]') }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -26,18 +28,24 @@ jobs:
           targets = [f'{version}-{loader}' for version, loaders in versions.items()
                      for loader in loaders if f'{version}-{loader}' not in ignored
                      and f'{version}-{loader}' != '1.21.11-fabric']
+          if os.environ.get('REQUESTED') == 'true':
+              targets = [f'{version}-fabric' for version in ['1.21.4', '26.1', '26.1.1', '26.1.2', '26.2']]
           targets.sort(key=lambda target: (not target.endswith('-fabric'), target))
+          Path('build-targets.txt').write_text('1.21.11-fabric\n' + '\n'.join(targets) + '\n')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write('matrix=' + json.dumps({'target': targets}) + '\n')
           PY
+      - name: Check public Ely.by device flow without signing in
+        continue-on-error: true
+        run: python3 dev/check_ely_device.py
       - id: release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="deobso-matrix-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          url=$(gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease \
+          url=$(gh release create "$tag" build-targets.txt --target "$GITHUB_SHA" --draft --prerelease \
             --title "deobso — multi-version test builds ${GITHUB_SHA:0:7}" \
-            --notes "Builds from $GITHUB_SHA. Minecraft 1.21.11 Fabric is built first, followed by the remaining supported targets. Assets are added as jobs finish; missing JARs mean a target has not succeeded. Each target has a checksum file and build log. These are untested in-game development builds, not a stable release. Build status: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID")
+            --notes "Builds from $GITHUB_SHA. Minecraft 1.21.11 Fabric is built first, followed by the targets listed in build-targets.txt. Assets are added as jobs finish; missing JARs mean a target has not succeeded. Each target has a checksum file and build log. These are untested in-game development builds, not a stable release. Build status: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID")
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Downloadable files (repository owner access): $url" >> "$GITHUB_STEP_SUMMARY"

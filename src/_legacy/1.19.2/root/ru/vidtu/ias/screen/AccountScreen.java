@@ -183,10 +183,8 @@ public final class AccountScreen extends Screen implements LastPassRenderCallbac
         // Add delete button.
         this.addRenderableWidget(new Button(this.width / 2 + 50 + 4, this.height - 24, 100, 20, CommonComponents.GUI_BACK, btn -> this.minecraft.setScreen(this.parent)));
 
-        this.addRenderableWidget(new PopupButton(this.width / 2 - 154, this.height - 72, 308, 20,
-                Component.literal("Add accounts from folder"), btn -> {
-            FolderImportScreen.open(this);
-        }, ru.vidtu.ias.legacy.LegacyTooltip.EMPTY));
+        this.addRenderableWidget(new Button(this.width / 2 - 154, this.height - 72, 308, 20,
+                Component.literal("Add accounts from folder"), btn -> FolderImportScreen.open(this)));
 
         // Add account list.
         if (this.list != null) {

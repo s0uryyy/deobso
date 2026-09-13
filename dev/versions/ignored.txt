@@ -26,3 +26,9 @@
 1.18.2-neoforge
 1.19.2-neoforge
 1.19.4-neoforge
+
+# New 26.1/26.1.1 ports currently target Fabric only.
+26.1-forge
+26.1-neoforge
+26.1.1-forge
+26.1.1-neoforge

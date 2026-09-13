@@ -134,5 +134,15 @@
   "modmenu.descriptionTranslation.ias": "Allows you to change which account you are signed in to in-game without restarting Minecraft.",
   "modmenu.summaryTranslation.ias": "Allows you to change your account in-game.",
   "deobso.account.ely": "Ely.by",
-  "deobso.ely.refresh": "Refreshing Ely.by session…"
+  "deobso.ely.refresh": "Refreshing Ely.by session…",
+  "deobso.folder.title": "Add accounts from folder",
+  "deobso.folder.open": "Open",
+  "deobso.ely.title": "Ely.by Login",
+  "deobso.ely.initializing": "Initializing Ely.by authorization...",
+  "deobso.ely.waiting": "Finish signing in through your browser.\nYour code: %s",
+  "deobso.ely.browser": "Open browser",
+  "deobso.ely.retry": "Try again",
+  "deobso.ely.copy": "Copy code",
+  "deobso.ely.failed": "Ely.by authorization failed: %s\nTry again.",
+  "deobso.ely.browserFailed": "Cannot open browser. Visit account.ely.by/code and enter the code."
 }

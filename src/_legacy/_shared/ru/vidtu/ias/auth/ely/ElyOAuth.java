@@ -50,6 +50,53 @@ public final class ElyOAuth {
                 "code_challenge_method", "S256", "prompt", "select_account")));
     }
 
+    public record Device(String deviceCode, String userCode, URI verificationUri, int interval, int expiresIn) {
+        public URI browserUri() {
+            return URI.create(verificationUri + "?" + form(Map.of("user_code", userCode)));
+        }
+        @Override public String toString() { return "ElyDevice{codes=REDACTED}"; }
+    }
+
+    public static final class ApiException extends IOException {
+        private final String code;
+        public ApiException(String code) {
+            super("Ely.by: " + safeCode(code));
+            this.code = safeCode(code);
+        }
+        public String code() { return code; }
+        private static String safeCode(String code) {
+            return code != null && java.util.Set.of("authorization_pending", "slow_down", "expired_token", "access_denied",
+                    "invalid_client", "invalid_scope", "invalid_request", "invalid_grant").contains(code)
+                    ? code : "request_failed";
+        }
+    }
+
+    public static Device beginDevice() throws IOException {
+        return parseDevice(request("https://account.ely.by/api/oauth2/v1/devicecode",
+                form(Map.of("client_id", CLIENT_ID, "scope", SCOPES)), null));
+    }
+
+    static Device parseDevice(JsonObject json) throws IOException {
+        try {
+            String device = json.get("device_code").getAsString();
+            String user = json.get("user_code").getAsString();
+            URI uri = URI.create(json.get("verification_uri").getAsString());
+            int interval = json.has("interval") ? json.get("interval").getAsInt() : 5;
+            int expiry = json.get("expires_in").getAsInt();
+            if (device.isBlank() || device.length() > 16384 || !user.matches("[A-Za-z0-9-]{1,128}")
+                    || !"https".equals(uri.getScheme()) || !"account.ely.by".equals(uri.getHost())
+                    || uri.getRawUserInfo() != null || (uri.getPort() != -1 && uri.getPort() != 443)
+                    || !"/code".equals(uri.getRawPath()) || uri.getRawQuery() != null || uri.getRawFragment() != null
+                    || interval < 1 || interval > 60 || expiry < 1 || expiry > 3600) throw new IllegalArgumentException();
+            return new Device(device, user, uri, interval, expiry);
+        } catch (RuntimeException ex) { throw new IOException("Invalid Ely.by device response"); }
+    }
+
+    public static Session pollDevice(String deviceCode) throws IOException {
+        return session(request(TOKEN_URL, form(Map.of("client_id", CLIENT_ID,
+                "grant_type", "urn:ietf:params:oauth:grant-type:device_code", "device_code", deviceCode)), null), null);
+    }
+
     public static Session exchange(String code, URI redirect, String verifier) throws IOException {
         JsonObject tokens = request(TOKEN_URL, form(Map.of("grant_type", "authorization_code",
                 "client_id", CLIENT_ID, "code", code, "redirect_uri", redirect.toString(),
@@ -109,7 +156,19 @@ public final class ElyOAuth {
                 try (var output = connection.getOutputStream()) { output.write(bytes); }
             }
             int status = connection.getResponseCode();
-            if (status != 200) throw new IOException("Ely.by OAuth request failed (HTTP " + status + ")");
+            if (status != 200) {
+                String error = "request_failed";
+                try (InputStream input = connection.getErrorStream()) {
+                    if (input != null) {
+                        byte[] bytes = input.readNBytes(65537);
+                        if (bytes.length <= 65536) {
+                            JsonObject response = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject();
+                            if (response.has("error")) error = response.get("error").getAsString();
+                        }
+                    }
+                } catch (RuntimeException ignored) { /* Never expose arbitrary response bodies. */ }
+                throw new ApiException(error);
+            }
             try (InputStream input = connection.getInputStream()) {
                 byte[] bytes = input.readNBytes(1024 * 1024 + 1);
                 if (bytes.length > 1024 * 1024) throw new IOException("Ely.by response too large");
