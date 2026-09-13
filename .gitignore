@@ -4,7 +4,7 @@ build/
 dev/.env
 out/
 run/
-versions/
+/versions/
 !/.idea/codeStyles
 !/.idea/codeStyles/**
 !/.idea/copyright
