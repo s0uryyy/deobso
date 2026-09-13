@@ -1,6 +1,11 @@
 name: Build every supported Minecraft and loader combination
 on:
   workflow_dispatch:
+    inputs:
+      upload_jars:
+        description: 'Upload built JARs (requires available artifact storage)'
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -46,8 +51,22 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew -Dru.vidtu.ias.only=${{ matrix.target }} assemble --no-daemon
-      - uses: actions/upload-artifact@v4
+      - name: Upload built JARs
+        uses: actions/upload-artifact@v4
+        if: inputs.upload_jars
         with:
           name: deobso-${{ matrix.target }}
           path: build/libs/
           if-no-files-found: error
+          retention-days: 3
+          compression-level: 9
+      - name: Explain artifact mode
+        if: always()
+        env:
+          UPLOAD_JARS: ${{ inputs.upload_jars }}
+        run: |
+          if [ "$UPLOAD_JARS" = "true" ]; then
+            echo 'JAR upload requested. Check the upload step for availability; compilation and upload are separate steps.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Build verification only: JAR upload is disabled. No downloadable JAR is retained. Re-run with upload_jars enabled once artifact storage is available.' >> "$GITHUB_STEP_SUMMARY"
+          fi
