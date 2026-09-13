@@ -83,12 +83,16 @@ public final class ElyOAuth {
             URI uri = URI.create(json.get("verification_uri").getAsString());
             int interval = json.has("interval") ? json.get("interval").getAsInt() : 5;
             int expiry = json.get("expires_in").getAsInt();
+            boolean secureScheme = "https".equals(uri.getScheme()) && (uri.getPort() == -1 || uri.getPort() == 443);
+            boolean legacyScheme = "http".equals(uri.getScheme()) && (uri.getPort() == -1 || uri.getPort() == 80);
             if (device.isBlank() || device.length() > 16384 || !user.matches("[A-Za-z0-9-]{1,128}")
-                    || !"https".equals(uri.getScheme()) || !"account.ely.by".equals(uri.getHost())
-                    || uri.getRawUserInfo() != null || (uri.getPort() != -1 && uri.getPort() != 443)
+                    || !(secureScheme || legacyScheme) || !"account.ely.by".equals(uri.getHost())
+                    || uri.getRawUserInfo() != null
                     || !"/code".equals(uri.getRawPath()) || uri.getRawQuery() != null || uri.getRawFragment() != null
                     || interval < 1 || interval > 60 || expiry < 1 || expiry > 3600) throw new IllegalArgumentException();
-            return new Device(device, user, uri, interval, expiry);
+            // Ely.by currently reports http://account.ely.by/code. Never open plaintext HTTP:
+            // whitelist the exact host/path above and canonicalize the browser URL to HTTPS.
+            return new Device(device, user, URI.create("https://account.ely.by/code"), interval, expiry);
         } catch (RuntimeException ex) { throw new IOException("Invalid Ely.by device response"); }
     }
 

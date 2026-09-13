@@ -62,7 +62,9 @@ class ElyDeviceTests {
         ElyOAuth.Device device = ElyOAuth.parseDevice(json);
         assertEquals("https://account.ely.by/code?user_code=ABCD-EFGH", device.browserUri().toString());
         assertFalse(device.toString().contains(device.deviceCode()));
-        for (String url : new String[]{"http://account.ely.by/code", "https://example.com/code", "https://account.ely.by/code?redirect=evil", "https://evil@account.ely.by/code", "https://account.ely.by:444/code"}) {
+        json.addProperty("verification_uri", "http://account.ely.by/code");
+        assertEquals("https://account.ely.by/code?user_code=ABCD-EFGH", ElyOAuth.parseDevice(json).browserUri().toString());
+        for (String url : new String[]{"http://account.ely.by:444/code", "https://example.com/code", "https://account.ely.by/code?redirect=evil", "https://evil@account.ely.by/code", "https://account.ely.by:444/code"}) {
             json.addProperty("verification_uri", url);
             assertThrows(java.io.IOException.class, () -> ElyOAuth.parseDevice(json));
         }

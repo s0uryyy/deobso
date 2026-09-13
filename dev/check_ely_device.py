@@ -26,7 +26,8 @@ def main():
         raise RuntimeError(f'Device initialization returned HTTP {status}')
     uri = urllib.parse.urlsplit(device['verification_uri'])
     print(f'::notice title=Ely device metadata::scheme={uri.scheme}; host={uri.hostname}; path={uri.path}; interval={device.get("interval")}; expires_in={device.get("expires_in")}')
-    assert device['verification_uri'] == 'https://account.ely.by/code', 'verification URI mismatch'
+    assert device['verification_uri'] in ('https://account.ely.by/code', 'http://account.ely.by/code'), 'verification URI mismatch'
+    # The mod upgrades the provider's legacy HTTP address to canonical HTTPS.
     assert device['interval'] > 0 and device['expires_in'] > 0
     status, validated = request('validate', {'user_code': device['user_code']}, False)
     assert status == 200, f'Browser validation returned HTTP {status}'
