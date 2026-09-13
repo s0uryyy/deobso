@@ -24,11 +24,14 @@ def main():
     status, device = request('devicecode', {'client_id': 'deobso', 'scope': 'account_info minecraft_server_session offline_access'})
     if status != 200:
         raise RuntimeError(f'Device initialization returned HTTP {status}')
-    assert device['verification_uri'] == 'https://account.ely.by/code'
+    uri = urllib.parse.urlsplit(device['verification_uri'])
+    print(f'::notice title=Ely device metadata::scheme={uri.scheme}; host={uri.hostname}; path={uri.path}; interval={device.get("interval")}; expires_in={device.get("expires_in")}')
+    assert device['verification_uri'] == 'https://account.ely.by/code', 'verification URI mismatch'
     assert device['interval'] > 0 and device['expires_in'] > 0
     status, validated = request('validate', {'user_code': device['user_code']}, False)
     assert status == 200, f'Browser validation returned HTTP {status}'
-    assert validated['client']['id'] == 'deobso'
+    print('::notice title=Ely browser validation::HTTP ' + str(status) + '; client fields: ' + ','.join(validated.get('client', {}).keys()))
+    assert validated['client']['id'] == 'deobso', 'client ID mismatch'
     # No consent is granted and no access/refresh tokens are requested here.
     print('Public Ely.by deobso device initialization and browser validation: PASS')
 
@@ -38,5 +41,6 @@ if __name__ == '__main__':
         main()
     except Exception as error:
         # Only the exception class is printed: arbitrary response bodies/codes stay private.
-        print('::error title=Ely.by preflight::Device authorization preflight failed (' + type(error).__name__ + ')')
+        detail = str(error) if isinstance(error, AssertionError) else type(error).__name__
+        print('::error title=Ely.by preflight::Device authorization preflight failed: ' + detail)
         raise SystemExit(1)

@@ -23,7 +23,7 @@ final class ElyPopupScreen extends Screen {
     private ElyOAuth.Device device;
     private boolean started, busy, closed;
     private int attemptId;
-    private Component stage = text("deobso.ely.initializing").withStyle(ChatFormatting.YELLOW);
+    private Component stage = text("deobso.ely.initializing").copy().withStyle(ChatFormatting.YELLOW);
     private MultiLineLabel label;
 
     ElyPopupScreen(Screen parent, Consumer<Account> handler) {
