@@ -1,4 +1,4 @@
-# deobso account changer
+# deobso (сделан только с помощью ИИ)
 
 Форк [In-Game Account Switcher](https://github.com/The-Fireplace-Minecraft-Mods/In-Game-Account-Switcher)
 на основе commit `8cdd44342c9832b26a3bd6292222cfdf2d1dbfea`.
