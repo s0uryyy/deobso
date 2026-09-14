@@ -4,8 +4,9 @@
 на основе commit `8cdd44342c9832b26a3bd6292222cfdf2d1dbfea`.
 Лицензия **LGPL-3.0-or-later**, авторство upstream сохранено в `NOTICE` и исходниках.
 
+[Скачать](https://github.com/s0uryyy/deobso/releases)
+
 > **Текущий snapshot: Device Authorization и обновлённый интерфейс.**
-> [Скачать JAR и SHA256 для Fabric 1.21.11, 1.21.4, 26.1, 26.1.1, 26.1.2 и 26.2](https://github.com/s0uryyy/deobso/releases/tag/untagged-77d8fe77260a25e0fa1c).
 > Черновик Release доступен владельцу репозитория после входа в GitHub.
 > Все шесть целей commit `b6d2226` успешно собраны в
 > [GitHub Actions](https://github.com/s0uryyy/deobso/actions/runs/34769161315),
