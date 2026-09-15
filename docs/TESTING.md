@@ -189,3 +189,8 @@ structure without executing its code. This is not a live ElyPrism game test.
 The completed matrix must have exactly one `deobso-newgen-v1.01` artifact.
 Separate optional test-report artifacts are disabled; logs/reports remain in
 Actions job output. All successful target JARs and checksums are merged together.
+
+Verified build `1d81aa6`: run 34970060016 passed all six Fabric targets and
+produced exactly one combined artifact (10396578015). The exact ElyPrism
+7.0.61-ely.1 checksum and integration field probe passed after using an explicit
+User-Agent. Core tests passed in run 34970060103. No live game login was performed.
