@@ -45,7 +45,7 @@ jobs:
           python3 dev/package_build.py 1.21.11-fabric
           echo "name=$(python3 dev/package_build.py --bundle-name)" >> "$GITHUB_OUTPUT"
       - name: Upload combined archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.package.outputs.name }}
           path: build/packaged/*
