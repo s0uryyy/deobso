@@ -56,13 +56,18 @@ def main():
     with urllib.request.urlopen(URL, timeout=45) as response:
         data = response.read(2 * 1024 * 1024 + 1)
     if len(data) > 2 * 1024 * 1024 or hashlib.sha1(data).hexdigest() != SHA1:
-        raise ValueError('Unexpected ElyPrism library contents')
+        raise ValueError('Unexpected ElyPrism library contents: size=' + str(len(data)) + ', sha1=' + hashlib.sha1(data).hexdigest())
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
-        assert 'by/ely/authlib/ElyProfileService.class' in archive.namelist()
+        assert 'by/ely/authlib/ElyProfileService.class' in archive.namelist(), 'ElyProfileService absent; classes: ' + ','.join(n for n in archive.namelist() if n.startswith('by/ely/'))
         fields = field_descriptors(archive.read('com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.class'))
-        assert 'Lby/ely/authlib/ElyProfileService;' in fields, 'Unsupported replacement session implementation'
+        assert 'Lby/ely/authlib/ElyProfileService;' in fields, 'Unsupported replacement session implementation: ' + repr(fields)
     print('::notice::ElyPrism authlib 7.0.61-ely.1: checksum and integrated session field verified (not a game login test).')
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as ex:
+        message = (type(ex).__name__ + ': ' + str(ex)).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+        print('::error title=ElyPrism compatibility probe::' + message)
+        raise
