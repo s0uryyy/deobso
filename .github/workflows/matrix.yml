@@ -1,0 +1,90 @@
+name: Build all Minecraft versions with downloadable JARs
+on:
+  workflow_dispatch:
+  push:
+permissions:
+  contents: read
+jobs:
+  prepare:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[matrix-build]') || contains(github.event.head_commit.message, '[requested-build]')
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.targets.outputs.matrix }}
+      bundle_name: ${{ steps.bundle.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: targets
+        env:
+          REQUESTED: ${{ contains(github.event.head_commit.message, '[requested-build]') }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          versions = json.loads(Path('stonecutter.properties.json').read_text())
+          ignored = set(Path('dev/versions/ignored.txt').read_text().splitlines())
+          targets = [f'{version}-{loader}' for version, loaders in versions.items()
+                     for loader in loaders if f'{version}-{loader}' not in ignored
+                     and f'{version}-{loader}' != '1.21.11-fabric']
+          if os.environ.get('REQUESTED') == 'true':
+              targets = [f'{version}-fabric' for version in ['1.21.4', '26.1', '26.1.1', '26.1.2', '26.2']]
+          targets.sort(key=lambda target: (not target.endswith('-fabric'), target))
+          Path('build-targets.txt').write_text('1.21.11-fabric\n' + '\n'.join(targets) + '\n')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('matrix=' + json.dumps({'target': targets}) + '\n')
+          PY
+      - name: Check public Ely.by device flow without signing in
+        continue-on-error: true
+        run: python3 dev/check_ely_device.py
+      - name: Verify ElyPrism replacement authlib compatibility
+        run: python3 dev/check_ely_authlib.py
+      - id: bundle
+        run: echo "name=$(python3 dev/package_build.py --bundle-name)" >> "$GITHUB_OUTPUT"
+  priority-fabric:
+    name: Fabric 1.21.11 (priority)
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-target
+        with:
+          target: 1.21.11-fabric
+  build:
+    needs: [prepare, priority-fabric]
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJson(needs.prepare.outputs.targets) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-target
+        with:
+          target: ${{ matrix.target }}
+  bundle:
+    if: always() && needs.prepare.result == 'success' && needs.priority-fabric.result == 'success'
+    needs: [prepare, priority-fabric, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Merge JARs into one downloadable archive and remove staging artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: ${{ needs.prepare.outputs.bundle_name }}
+          pattern: staged-*
+          delete-merged: true
+          retention-days: 7
+          compression-level: 0
+      - name: Summarize build coverage
+        env:
+          MATRIX: ${{ needs.build.result }}
+        run: |
+          echo "Fabric 1.21.11: success; other targets: $MATRIX" >> "$GITHUB_STEP_SUMMARY"
+          echo "Download the single combined archive from Actions Artifacts. No logs or Releases." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$MATRIX" != success ]; then
+            echo "::warning::Partial bundle: some targets failed. Check the build jobs before downloading."
+            echo "WARNING: This archive is incomplete; some targets failed." >> "$GITHUB_STEP_SUMMARY"
+          fi

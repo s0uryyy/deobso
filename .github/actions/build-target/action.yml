@@ -1,0 +1,40 @@
+name: Build and retain one Minecraft target
+description: Compile a scoped target and retain JARs in Actions Artifacts only
+inputs:
+  target:
+    description: Minecraft version and loader
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '25'
+    - uses: gradle/actions/setup-gradle@v4
+    - name: Compile requested version
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+      run: bash dev/build_target.sh "$TARGET"
+    - name: Package JARs and checksums
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+      run: python3 dev/package_build.py "$TARGET"
+    - name: Upload JARs and checksums
+      uses: actions/upload-artifact@v4
+      with:
+        name: staged-${{ inputs.target }}
+        path: build/packaged/*
+        if-no-files-found: error
+        retention-days: 7
+        compression-level: 0

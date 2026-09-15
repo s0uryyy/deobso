@@ -1,0 +1,24 @@
+.gradle/
+.idea/**
+build/
+dev/.env
+out/
+run/
+/versions/
+!/.idea/codeStyles
+!/.idea/codeStyles/**
+!/.idea/copyright
+!/.idea/copyright/**
+!/.idea/dictionaries
+!/.idea/dictionaries/**
+!/.idea/encodings.xml
+!/.idea/icon.png
+!/.idea/inspectionProfiles
+!/.idea/inspectionProfiles/**
+
+# Never version account credentials or local authentication artifacts.
+**/_IAS_ACCOUNTS_DO_NOT_SEND_TO_ANYONE/
+**/accounts_v1.do_not_send_to_anyone
+**/.deobso-*.tmp
+**/_DEOBSO_ACCOUNTS_DO_NOT_SEND_TO_ANYONE/
+**/.deobso-accounts-copy-*/

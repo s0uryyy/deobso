@@ -1,0 +1,54 @@
+name: deobso checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: python3 -m unittest discover -s dev/tests -v
+      - run: ./gradlew -p tests test --no-daemon
+      - name: Write test summary
+        if: always()
+        run: python3 dev/test_summary.py
+
+  compile-fabric:
+    # Avoid building twice for the push and pull_request events of the same commit.
+    if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, '[matrix-build]') && !contains(github.event.head_commit.message, '[requested-build]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build Minecraft 1.21.11 Fabric
+        run: bash dev/build_target.sh 1.21.11-fabric
+      - name: Package JAR and checksums
+        id: package
+        run: |
+          python3 dev/package_build.py 1.21.11-fabric
+          echo "name=$(python3 dev/package_build.py --bundle-name)" >> "$GITHUB_OUTPUT"
+      - name: Upload combined archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.name }}
+          path: build/packaged/*
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
