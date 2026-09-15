@@ -144,5 +144,7 @@
   "deobso.ely.retry": "Try again",
   "deobso.ely.copy": "Copy code",
   "deobso.ely.failed": "Ely.by authorization failed: %s\nTry again.",
-  "deobso.ely.browserFailed": "Cannot open browser. Visit account.ely.by/code and enter the code."
+  "deobso.ely.browserFailed": "Cannot open browser. Visit account.ely.by/code and enter the code.",
+  "deobso.ely.injector.inactive": "authlib-injector is not active or is inaccessible to the mod. Add -javaagent:/path/authlib-injector.jar=ely.by to launcher JVM arguments and fully restart Minecraft. Placing the JAR in mods is not enough.",
+  "deobso.ely.injector.endpoint": "authlib-injector is active, but an Ely.by endpoint was not recognized in JVM arguments. Use -javaagent:/path/authlib-injector.jar=ely.by and restart. Other servers and dynamic attachment are not supported."
 }

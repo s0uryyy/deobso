@@ -142,5 +142,7 @@
   "deobso.ely.retry": "Повторить",
   "deobso.ely.copy": "Копировать код",
   "deobso.ely.failed": "Ошибка авторизации Ely.by: %s\nПопробуйте ещё раз.",
-  "deobso.ely.browserFailed": "Не удалось открыть браузер. Откройте account.ely.by/code и введите код."
+  "deobso.ely.browserFailed": "Не удалось открыть браузер. Откройте account.ely.by/code и введите код.",
+  "deobso.ely.injector.inactive": "authlib-injector не запущен или недоступен моду. Подключите его в JVM-аргументах лаунчера: -javaagent:/путь/authlib-injector.jar=ely.by и полностью перезапустите игру. JAR в папке mods недостаточно.",
+  "deobso.ely.injector.endpoint": "authlib-injector запущен, но адрес Ely.by не распознан в JVM-аргументах. Используйте -javaagent:/путь/authlib-injector.jar=ely.by и перезапустите игру. Другие серверы и динамическое подключение не поддерживаются."
 }

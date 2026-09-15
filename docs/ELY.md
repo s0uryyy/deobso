@@ -78,3 +78,21 @@ codes и `/validate` без входа в пользовательский ак�
 - https://github.com/elyby/accounts/blob/master/api/tests/functional/oauth/DeviceCodeCest.php
 - https://github.com/elyby/accounts-frontend/blob/master/packages/app/components/auth/actions.ts
 - https://github.com/elyby/accounts-frontend/blob/master/packages/app/services/authFlow/InitOAuthAuthCodeFlowState.ts
+
+## Если injector установлен, но вход заблокирован
+
+Прежняя проверка ошибочно отвергала `https://ely.by/`: она принимала только
+строго заданные строки. Исправленная проверка понимает адреса Ely.by с HTTP(S),
+без схемы, с завершающим слешем, с обычным портом и разным регистром хоста.
+Проверяются только официальные хосты/пути, без query, fragment или userinfo.
+
+Также проверяется ненулевой `AuthlibInjector.getClassTransformer()` через
+системный, игровой и контекстный загрузчики. Наличие класса или JAR само по себе
+не подтверждает запуск агента. Неизвестные форки и динамическое подключение
+без JVM-параметра не поддерживаются. Эта проверка не доказывает, что все
+классы конкретной версии Minecraft успешно преобразованы: сессии и скины
+нужно проверить в игре.
+
+Если сообщение осталось, сообщи версию Minecraft/лаунчера и только параметр
+`-javaagent:…=…`, скрыв локальный путь. Не отправляй полные JVM-аргументы,
+токены, хранилище аккаунтов или полные логи в публичные issues.

@@ -157,3 +157,14 @@ Commit `b6d2226`: [все шесть Fabric-целей успешно собра
 [Черновик Release](https://github.com/s0uryyy/deobso/releases/tag/untagged-77d8fe77260a25e0fa1c)
 содержит шесть JAR, шесть файлов SHA256, логи и build-targets.txt.
 Ручной чек-лист выше остаётся невыполненным.
+
+## Регрессия обнаружения authlib-injector
+
+`ElyInjectorTests` проверяет официальные варианты URL, отрицательные случаи
+(другой хост, userinfo, query/fragment, нестандартный порт, поддельный аргумент),
+а также активный/неинициализированный/несовместимый transformer через тестовые
+классы. Это unit-тесты, не запуск настоящего javaagent в Minecraft.
+
+Новые CI-сборки используют только `actions/upload-artifact@v4`; Release-upload
+удалён из обеих build workflows и composite action, права contents — read.
+Если квота Artifacts исчерпана, upload завершится ошибкой без публикации Release.

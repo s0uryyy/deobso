@@ -4,10 +4,12 @@
 на основе commit `8cdd44342c9832b26a3bd6292222cfdf2d1dbfea`.
 Лицензия **LGPL-3.0-or-later**, авторство upstream сохранено в `NOTICE` и исходниках.
 
-[Скачать](https://github.com/s0uryyy/deobso/releases)
+[Сборки: GitHub Actions → успешный запуск → Artifacts](https://github.com/s0uryyy/deobso/actions/workflows/matrix.yml)
 
 > **Текущий snapshot: Device Authorization и обновлённый интерфейс.**
-> Черновик Release доступен владельцу репозитория после входа в GitHub.
+> Новые сборки сохраняются только в Actions Artifacts (7 дней); автоматическая
+> публикация в Releases и резервный Release-upload отключены.
+> Результаты ниже исторические, до исправления распознавания injector.
 > Все шесть целей commit `b6d2226` успешно собраны в
 > [GitHub Actions](https://github.com/s0uryyy/deobso/actions/runs/34769161315),
 > [core-тесты также прошли](https://github.com/s0uryyy/deobso/actions/runs/34769161295).

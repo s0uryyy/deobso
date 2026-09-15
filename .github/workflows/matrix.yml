@@ -7,13 +7,9 @@ permissions:
 jobs:
   prepare:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[matrix-build]') || contains(github.event.head_commit.message, '[requested-build]')
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     outputs:
       targets: ${{ steps.targets.outputs.matrix }}
-      release_tag: ${{ steps.release.outputs.tag }}
-      release_url: ${{ steps.release.outputs.url }}
     steps:
       - uses: actions/checkout@v4
       - id: targets
@@ -38,32 +34,22 @@ jobs:
       - name: Check public Ely.by device flow without signing in
         continue-on-error: true
         run: python3 dev/check_ely_device.py
-      - id: release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          tag="deobso-matrix-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          url=$(gh release create "$tag" build-targets.txt --target "$GITHUB_SHA" --draft --prerelease \
-            --title "deobso — multi-version test builds ${GITHUB_SHA:0:7}" \
-            --notes "Builds from $GITHUB_SHA. Minecraft 1.21.11 Fabric is built first, followed by the targets listed in build-targets.txt. Assets are added as jobs finish; missing JARs mean a target has not succeeded. Each target has a checksum file and build log. These are untested in-game development builds, not a stable release. Build status: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID")
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "Downloadable files (repository owner access): $url" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: build-targets
+          path: build-targets.txt
+          retention-days: 7
   priority-fabric:
     name: Fabric 1.21.11 (priority)
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-target
-        env:
-          GH_TOKEN: ${{ github.token }}
         with:
           target: 1.21.11-fabric
-          release_tag: ${{ needs.prepare.outputs.release_tag }}
   build:
     needs: [prepare, priority-fabric]
     strategy:
@@ -72,16 +58,11 @@ jobs:
       matrix: ${{ fromJson(needs.prepare.outputs.targets) }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-target
-        env:
-          GH_TOKEN: ${{ github.token }}
         with:
           target: ${{ matrix.target }}
-          release_tag: ${{ needs.prepare.outputs.release_tag }}
   summary:
     if: always() && needs.prepare.result == 'success'
     needs: [prepare, priority-fabric, build]
@@ -90,8 +71,7 @@ jobs:
       - env:
           PRIORITY: ${{ needs.priority-fabric.result }}
           MATRIX: ${{ needs.build.result }}
-          RELEASE: ${{ needs.prepare.outputs.release_url }}
         run: |
           echo "Fabric 1.21.11: **$PRIORITY**" >> "$GITHUB_STEP_SUMMARY"
           echo "Other targets: **$MATRIX**" >> "$GITHUB_STEP_SUMMARY"
-          echo "Downloads: $RELEASE" >> "$GITHUB_STEP_SUMMARY"
+          echo "Downloads: Actions Artifacts on this workflow run (no Releases)." >> "$GITHUB_STEP_SUMMARY"

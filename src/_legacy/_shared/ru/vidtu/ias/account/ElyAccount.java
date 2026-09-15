@@ -51,8 +51,12 @@ public final class ElyAccount implements Account {
         CompletableFuture.runAsync(() -> {
             try {
                 if (handler.cancelled()) return;
-                if (!ElyAuth.injectorAvailable()) {
-                    handler.error(new IOException("Game login and skins require the Ely.by authlib-injector. See docs/ELY.md."));
+                ElyAuth.InjectorStatus injector = ElyAuth.injectorStatus();
+                if (injector != ElyAuth.InjectorStatus.READY) {
+                    handler.error(new ru.vidtu.ias.utils.exceptions.FriendlyException(
+                            "Ely.by injector check: " + injector + ". See docs/ELY.md.",
+                            injector == ElyAuth.InjectorStatus.NOT_ACTIVE
+                                    ? "deobso.ely.injector.inactive" : "deobso.ely.injector.endpoint"));
                     return;
                 }
                 handler.stage("deobso.ely.refresh");

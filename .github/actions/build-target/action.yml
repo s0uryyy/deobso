@@ -1,11 +1,8 @@
 name: Build and retain one Minecraft target
-description: Compile a scoped target and save its JARs in an existing draft release
+description: Compile a scoped target and retain JARs in Actions Artifacts only
 inputs:
   target:
     description: Minecraft version and loader
-    required: true
-  release_tag:
-    description: Existing draft release tag
     required: true
 runs:
   using: composite
@@ -28,22 +25,24 @@ runs:
       env:
         TARGET: ${{ inputs.target }}
       run: bash dev/build_target.sh "$TARGET"
-    - name: Save JARs and checksums
+    - name: Package JARs and checksums
       shell: bash
       env:
         TARGET: ${{ inputs.target }}
-        RELEASE_TAG: ${{ inputs.release_tag }}
-      run: |
-        python3 dev/package_build.py "$TARGET"
-        gh release upload "$RELEASE_TAG" build/packaged/* --repo "$GITHUB_REPOSITORY" --clobber
-        echo "Built and uploaded **$TARGET** to draft release **$RELEASE_TAG**." >> "$GITHUB_STEP_SUMMARY"
+      run: python3 dev/package_build.py "$TARGET"
+    - name: Upload JARs and checksums
+      uses: actions/upload-artifact@v4
+      with:
+        name: deobso-${{ inputs.target }}
+        path: build/packaged/*
+        if-no-files-found: error
+        retention-days: 7
+        compression-level: 0
     - name: Retain build log
       if: always()
-      shell: bash
-      env:
-        TARGET: ${{ inputs.target }}
-        RELEASE_TAG: ${{ inputs.release_tag }}
-      run: |
-        if [ -f "build/ci-logs/$TARGET.log" ]; then
-          gh release upload "$RELEASE_TAG" "build/ci-logs/$TARGET.log" --repo "$GITHUB_REPOSITORY" --clobber
-        fi
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-log-${{ inputs.target }}
+        path: build/ci-logs/${{ inputs.target }}.log
+        if-no-files-found: warn
+        retention-days: 7

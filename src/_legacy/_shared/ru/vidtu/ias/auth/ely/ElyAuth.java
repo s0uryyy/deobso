@@ -24,21 +24,65 @@ public final class ElyAuth {
         @Override public String toString() { return "ElySession{credentials=REDACTED}"; }
     }
 
-    /** Injector is needed for skin signatures, texture hosts and session/join routing. */
+    /** No credential-bearing JVM arguments are logged. A JAR merely present is not active. */
     public static boolean injectorAvailable() {
+        return injectorStatus() == InjectorStatus.READY;
+    }
+
+    public enum InjectorStatus { READY, NOT_ACTIVE, WRONG_ENDPOINT }
+
+    public static InjectorStatus injectorStatus() {
+        boolean active = false;
+        ClassLoader[] loaders = {ClassLoader.getSystemClassLoader(),
+                ElyAuth.class.getClassLoader(), Thread.currentThread().getContextClassLoader()};
+        for (ClassLoader loader : loaders) {
+            try {
+                Class<?> type = Class.forName("moe.yushi.authlibinjector.AuthlibInjector", false, loader);
+                if (activeInjector(type)) { active = true; break; }
+            } catch (ClassNotFoundException | LinkageError | SecurityException ignored) {
+                // Some launchers isolate the agent from the game's class loader.
+            }
+        }
+        if (!active) return InjectorStatus.NOT_ACTIVE;
         try {
-            Class.forName("moe.yushi.authlibinjector.AuthlibInjector", false, ClassLoader.getSystemClassLoader());
-        } catch (ClassNotFoundException | LinkageError ex) {
+            return ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
+                    .anyMatch(ElyAuth::elyAgentArgument) ? InjectorStatus.READY : InjectorStatus.WRONG_ENDPOINT;
+        } catch (SecurityException ex) {
+            return InjectorStatus.WRONG_ENDPOINT;
+        }
+    }
+
+    static boolean activeInjector(Class<?> type) {
+        try {
+            return type.getMethod("getClassTransformer").invoke(null) != null;
+        } catch (ReflectiveOperationException | LinkageError | SecurityException ex) {
             return false;
         }
-        return ManagementFactory.getRuntimeMXBean().getInputArguments().stream().anyMatch(arg -> {
-            if (!arg.startsWith("-javaagent:")) return false;
-            int equals = arg.indexOf('=');
-            if (equals < 0) return false;
-            String endpoint = arg.substring(equals + 1).replaceAll("/+$", "");
-            return endpoint.equals("ely.by") || endpoint.equals("https://authserver.ely.by")
-                    || endpoint.equals("https://account.ely.by/api/authlib-injector");
-        });
+    }
+
+    static boolean elyAgentArgument(String argument) {
+        if (!argument.startsWith("-javaagent:")) return false;
+        int equals = argument.indexOf('=');
+        if (equals <= "-javaagent:".length()) return false;
+        return elyEndpoint(argument.substring(equals + 1));
+    }
+
+    static boolean elyEndpoint(String endpoint) {
+        try {
+            // authlib-injector itself defaults scheme-less addresses to HTTPS.
+            URI uri = URI.create(endpoint.contains("://") ? endpoint : "https://" + endpoint);
+            String scheme = uri.getScheme();
+            if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme)) return false;
+            if (uri.getRawUserInfo() != null || uri.getRawQuery() != null || uri.getRawFragment() != null) return false;
+            int port = uri.getPort();
+            if (port != -1 && port != ("https".equalsIgnoreCase(scheme) ? 443 : 80)) return false;
+            String host = uri.getHost();
+            String path = uri.getRawPath().replaceAll("/+$", "");
+            return (("ely.by".equalsIgnoreCase(host) || "authserver.ely.by".equalsIgnoreCase(host)) && path.isEmpty())
+                    || ("account.ely.by".equalsIgnoreCase(host) && path.equals("/api/authlib-injector"));
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     public static Session authenticate(String username, String password, String totp) throws IOException, InterruptedException {

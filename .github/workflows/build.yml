@@ -4,10 +4,6 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      draft_release_fallback:
-        description: 'If JAR artifact upload fails, save files in a draft prerelease'
-        type: boolean
-        default: false
       upload_reports:
         description: 'Upload test reports (requires available artifact storage)'
         type: boolean
@@ -40,8 +36,6 @@ jobs:
           if-no-files-found: warn
 
   compile-fabric:
-    permissions:
-      contents: write
     # Avoid building twice for the push and pull_request events of the same commit.
     if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, '[matrix-build]') && !contains(github.event.head_commit.message, '[requested-build]')
     runs-on: ubuntu-latest
@@ -81,22 +75,3 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
-      - name: Save JARs in a draft release if artifact storage is unavailable
-        # A marked push on the development branch also permits a one-off draft build
-        # when the GitHub connection cannot dispatch workflows manually.
-        if: >-
-          failure() && steps.jar_artifact.outcome == 'failure' &&
-          ((github.event_name == 'workflow_dispatch' && inputs.draft_release_fallback) ||
-          (github.event_name == 'push' && github.ref == 'refs/heads/arena/01a09a8b-deobso' &&
-          contains(github.event.head_commit.message, '[draft-build]')))
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          tag="deobso-build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          url=$(gh release create "$tag" build/libs/*1.21.11-fabric*.jar build/libs/SHA256SUMS.txt \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" --draft --prerelease \
-            --title "deobso 1.21.11 Fabric — test build ${GITHUB_SHA:0:7}" \
-            --notes "Test build from $GITHUB_SHA. Minecraft 1.21.11 / Fabric only. Built by GitHub Actions; in-game behavior is not verified. Saved here because Actions artifact upload failed. Includes SHA256SUMS.txt. This is an unpublished draft, not a stable release.")
-          echo "JARs saved in draft release: $url" >> "$GITHUB_STEP_SUMMARY"
