@@ -71,7 +71,7 @@ jobs:
       actions: write
     steps:
       - name: Merge JARs into one downloadable archive and remove staging artifacts
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: ${{ needs.prepare.outputs.bundle_name }}
           pattern: staged-*
