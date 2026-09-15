@@ -12,7 +12,7 @@ jobs:
       targets: ${{ steps.targets.outputs.matrix }}
       bundle_name: ${{ steps.bundle.outputs.name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: targets
         env:
           REQUESTED: ${{ contains(github.event.head_commit.message, '[requested-build]') }}
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/build-target
         with:
           target: 1.21.11-fabric
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/build-target
         with:
           target: ${{ matrix.target }}
