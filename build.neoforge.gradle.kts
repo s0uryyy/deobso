@@ -61,7 +61,8 @@ java {
 // Metadata.
 group = "ru.vidtu.ias"
 base.archivesName = "deobso-account-changer"
-version = "${version}+${name}"
+val modVersion = version.toString()
+version = "${modVersion}+${name}"
 description = "Allows you to change which account you are signed in to in-game without restarting Minecraft."
 
 sc {
@@ -166,7 +167,7 @@ sourceSets.main {
             .orElse(provider { "${gradle.taskGraph.allTasks.any { it.name == "runClient" }}" })
         property("debugAsserts", providers.gradleProperty("ru.vidtu.ias.debug.asserts").orElse(fallbackProvider))
         property("debugLogs", providers.gradleProperty("ru.vidtu.ias.debug.logs").orElse(fallbackProvider))
-        property("version", "${version}")
+        property("version", modVersion)
         property("minecraft", "${mcv}")
     }
 }
@@ -193,7 +194,7 @@ tasks.withType<ProcessResources> {
     // Expand version and dependencies.
     inputs.property("mixinJava", javaTarget)
     inputs.property("minecraft", mcv)
-    inputs.property("version", version)
+    inputs.property("version", modVersion)
     inputs.property("platform", "neoforge")
     filesMatching(listOf("ias.mixins.json", "META-INF/mods.toml", "META-INF/neoforge.mods.toml")) {
         expand(inputs.properties)

@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       targets: ${{ steps.targets.outputs.matrix }}
+      bundle_name: ${{ steps.bundle.outputs.name }}
     steps:
       - uses: actions/checkout@v4
       - id: targets
@@ -34,12 +35,8 @@ jobs:
       - name: Check public Ely.by device flow without signing in
         continue-on-error: true
         run: python3 dev/check_ely_device.py
-      - uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: build-targets
-          path: build-targets.txt
-          retention-days: 7
+      - id: bundle
+        run: echo "name=$(python3 dev/package_build.py --bundle-name)" >> "$GITHUB_OUTPUT"
   priority-fabric:
     name: Fabric 1.21.11 (priority)
     needs: prepare
@@ -63,15 +60,29 @@ jobs:
       - uses: ./.github/actions/build-target
         with:
           target: ${{ matrix.target }}
-  summary:
-    if: always() && needs.prepare.result == 'success'
+  bundle:
+    if: always() && needs.prepare.result == 'success' && needs.priority-fabric.result == 'success'
     needs: [prepare, priority-fabric, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
-      - env:
-          PRIORITY: ${{ needs.priority-fabric.result }}
+      - name: Merge JARs into one downloadable archive and remove staging artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: ${{ needs.prepare.outputs.bundle_name }}
+          pattern: staged-*
+          delete-merged: true
+          retention-days: 7
+          compression-level: 0
+      - name: Summarize build coverage
+        env:
           MATRIX: ${{ needs.build.result }}
         run: |
-          echo "Fabric 1.21.11: **$PRIORITY**" >> "$GITHUB_STEP_SUMMARY"
-          echo "Other targets: **$MATRIX**" >> "$GITHUB_STEP_SUMMARY"
-          echo "Downloads: Actions Artifacts on this workflow run (no Releases)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Fabric 1.21.11: success; other targets: $MATRIX" >> "$GITHUB_STEP_SUMMARY"
+          echo "Download the single combined archive from Actions Artifacts. No logs or Releases." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$MATRIX" != success ]; then
+            echo "::warning::Partial bundle: some targets failed. Check the build jobs before downloading."
+            echo "WARNING: This archive is incomplete; some targets failed." >> "$GITHUB_STEP_SUMMARY"
+          fi

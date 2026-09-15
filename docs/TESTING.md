@@ -168,3 +168,12 @@ Commit `b6d2226`: [все шесть Fabric-целей успешно собра
 Новые CI-сборки используют только `actions/upload-artifact@v4`; Release-upload
 удалён из обеих build workflows и composite action, права contents — read.
 Если квота Artifacts исчерпана, upload завершится ошибкой без публикации Release.
+
+## Упаковка 1.01-newgen
+
+`python3 -m unittest discover -s dev/tests -v` проверяет имена файлов,
+отсутствие конфликтов между загрузчиками, SHA256 и отклонение некорректной
+версии внутри Fabric JAR. `package_build.py` проверяет `fabric.mod.json`
+готового JAR перед загрузкой. Матрица объединяет временные артефакты
+в один `deobso-newgen-v1.01` и удаляет их после успешного объединения.
+Логи доступны в jobs Actions, но отдельными артефактами не загружаются.

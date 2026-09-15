@@ -33,16 +33,8 @@ runs:
     - name: Upload JARs and checksums
       uses: actions/upload-artifact@v4
       with:
-        name: deobso-${{ inputs.target }}
+        name: staged-${{ inputs.target }}
         path: build/packaged/*
         if-no-files-found: error
         retention-days: 7
         compression-level: 0
-    - name: Retain build log
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-log-${{ inputs.target }}
-        path: build/ci-logs/${{ inputs.target }}.log
-        if-no-files-found: warn
-        retention-days: 7
