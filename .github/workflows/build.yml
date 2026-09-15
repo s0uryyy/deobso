@@ -3,11 +3,6 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-    inputs:
-      upload_reports:
-        description: 'Upload test reports (requires available artifact storage)'
-        type: boolean
-        default: false
 permissions:
   contents: read
 jobs:
@@ -25,16 +20,6 @@ jobs:
       - name: Write test summary
         if: always()
         run: python3 dev/test_summary.py
-      - name: Upload optional test reports
-        uses: actions/upload-artifact@v4
-        if: always() && github.event_name == 'workflow_dispatch' && inputs.upload_reports
-        continue-on-error: true
-        with:
-          name: core-test-results
-          path: tests/build/reports/tests/
-          retention-days: 3
-          compression-level: 9
-          if-no-files-found: warn
 
   compile-fabric:
     # Avoid building twice for the push and pull_request events of the same commit.

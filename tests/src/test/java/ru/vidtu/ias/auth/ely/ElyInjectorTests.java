@@ -37,4 +37,15 @@ class ElyInjectorTests {
         assertFalse(ElyAuth.activeInjector(Broken.class));
         assertFalse(ElyAuth.activeInjector(Object.class));
     }
+
+    public static class ElyProfileFixture { }
+    public static class PatchedSessionFixture { private ElyProfileFixture profile; }
+    public static class VanillaSessionFixture { private Object profile; }
+
+    @Test void recognizesIntegratedReplacementButNotAnUnrelatedElyClass() {
+        assertTrue(ElyAuth.integratedReplacement(PatchedSessionFixture.class, ElyProfileFixture.class));
+        assertFalse(ElyAuth.integratedReplacement(VanillaSessionFixture.class, ElyProfileFixture.class));
+        assertFalse(ElyAuth.integratedReplacement(PatchedSessionFixture.class, Object.class));
+        assertFalse(ElyAuth.replacementAvailable(new ClassLoader(null) { }));
+    }
 }

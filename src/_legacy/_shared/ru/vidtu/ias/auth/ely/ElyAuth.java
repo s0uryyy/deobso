@@ -32,6 +32,9 @@ public final class ElyAuth {
     public enum InjectorStatus { READY, NOT_ACTIVE, WRONG_ENDPOINT }
 
     public static InjectorStatus injectorStatus() {
+        // ElyPrism can replace Mojang authlib instead of attaching a javaagent.
+        // Resolve through the GAME loader, not any unrelated JAR on the system classpath.
+        if (replacementAvailable(ElyAuth.class.getClassLoader())) return InjectorStatus.READY;
         boolean active = false;
         ClassLoader[] loaders = {ClassLoader.getSystemClassLoader(),
                 ElyAuth.class.getClassLoader(), Thread.currentThread().getContextClassLoader()};
@@ -49,6 +52,32 @@ public final class ElyAuth {
                     .anyMatch(ElyAuth::elyAgentArgument) ? InjectorStatus.READY : InjectorStatus.WRONG_ENDPOINT;
         } catch (SecurityException ex) {
             return InjectorStatus.WRONG_ENDPOINT;
+        }
+    }
+
+    static boolean replacementAvailable(ClassLoader gameLoader) {
+        try {
+            Class<?> session = Class.forName("com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService", false, gameLoader);
+            Class<?> profile = Class.forName("by.ely.authlib.ElyProfileService", false, session.getClassLoader());
+            return integratedReplacement(session, profile);
+        } catch (ClassNotFoundException | LinkageError | SecurityException ex) {
+            return false;
+        }
+    }
+
+    /** A spare Ely JAR/class is not enough: the resolved session implementation must use it. */
+    static boolean integratedReplacement(Class<?> session, Class<?> profile) {
+        try {
+            java.security.CodeSource sessionSource = session.getProtectionDomain().getCodeSource();
+            java.security.CodeSource profileSource = profile.getProtectionDomain().getCodeSource();
+            if (sessionSource == null || profileSource == null
+                    || !sessionSource.getLocation().equals(profileSource.getLocation())) return false;
+            for (java.lang.reflect.Field field : session.getDeclaredFields()) {
+                if (field.getType() == profile) return true;
+            }
+            return false;
+        } catch (LinkageError | SecurityException ex) {
+            return false;
         }
     }
 

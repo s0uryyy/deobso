@@ -35,6 +35,8 @@ jobs:
       - name: Check public Ely.by device flow without signing in
         continue-on-error: true
         run: python3 dev/check_ely_device.py
+      - name: Verify ElyPrism replacement authlib compatibility
+        run: python3 dev/check_ely_authlib.py
       - id: bundle
         run: echo "name=$(python3 dev/package_build.py --bundle-name)" >> "$GITHUB_OUTPUT"
   priority-fabric:

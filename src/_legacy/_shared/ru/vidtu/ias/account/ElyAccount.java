@@ -54,7 +54,7 @@ public final class ElyAccount implements Account {
                 ElyAuth.InjectorStatus injector = ElyAuth.injectorStatus();
                 if (injector != ElyAuth.InjectorStatus.READY) {
                     handler.error(new ru.vidtu.ias.utils.exceptions.FriendlyException(
-                            "Ely.by injector check: " + injector + ". See docs/ELY.md.",
+                            "Ely.by auth backend check: " + injector + ". See docs/ELY.md.",
                             injector == ElyAuth.InjectorStatus.NOT_ACTIVE
                                     ? "deobso.ely.injector.inactive" : "deobso.ely.injector.endpoint"));
                     return;

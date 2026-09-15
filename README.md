@@ -72,13 +72,15 @@ Forge/NeoForge и compile-time version подставляется именно �
   сайте без отключения защиты. Экран оформлен как Microsoft-авторизация.
   Пароль и 2FA вводятся только на сайте Ely.by, не в моде.
   Access/refresh tokens шифруются HardwareCrypt v2. Старые Ely.by-аккаунты
-  продолжают читаться. Для игровых сессий и скинов нужен **authlib-injector**,
+  продолжают читаться. Для игровых сессий и скинов нужна **authlib от Ely.by (ElyPrismLauncher)**
+  либо **authlib-injector**,
   см. [ELY.md](docs/ELY.md).
 
 ## Ограничения Ely.by
 
 Это **не автономная реализация скинов в одном mod JAR**: интеграция использует
-внешний javaagent. Его нужно настроить в лаунчере. Вход Ely.by не даёт доступ к
+заменённую authlib Ely.by в ElyPrismLauncher либо внешний javaagent.
+Второй javaagent поверх работающей Ely-authlib не требуется. Вход Ely.by не даёт доступ к
 обычным серверам с Microsoft/Mojang online-mode. В профиле с Ely.by javaagent
 Microsoft-вход в моде блокируется: для него нужно перезапустить игру без agent.
 Одновременное переключение двух провайдеров без перезапуска не реализовано.

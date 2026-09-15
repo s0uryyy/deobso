@@ -177,3 +177,15 @@ Commit `b6d2226`: [все шесть Fabric-целей успешно собра
 готового JAR перед загрузкой. Матрица объединяет временные артефакты
 в один `deobso-newgen-v1.01` и удаляет их после успешного объединения.
 Логи доступны в jobs Actions, но отдельными артефактами не загружаются.
+
+## ElyPrismLauncher replacement authlib regression
+
+The runtime detector accepts the game's resolved session implementation with an
+integrated ElyProfileService from the same code source, without a javaagent.
+Tests reject vanilla session fixtures, unrelated helper classes, and an empty
+class loader. CI verifies the exact 7.0.61-ely.1 library's checksum and field
+structure without executing its code. This is not a live ElyPrism game test.
+
+The completed matrix must have exactly one `deobso-newgen-v1.01` artifact.
+Separate optional test-report artifacts are disabled; logs/reports remain in
+Actions job output. All successful target JARs and checksums are merged together.
