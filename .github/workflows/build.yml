@@ -19,7 +19,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - run: python3 -m unittest discover -s dev/tests -v
       - run: ./gradlew -p tests test --no-daemon
       - name: Write test summary
@@ -51,7 +51,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - name: Build Minecraft 1.21.11 Fabric
         run: bash dev/build_target.sh 1.21.11-fabric
       - name: Package JAR and checksums
